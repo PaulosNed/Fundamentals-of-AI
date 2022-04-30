@@ -48,7 +48,7 @@ class Graph:
         print("Edges: ", self.edges, "\n\n")
         print("List of corresponding neighbouring nodes: ", self.neighbouringNodes, "\n\n")
 
-    def bfs(self, startingNode, targetNode):
+    def bfs(self, startingNode):
         if isinstance(startingNode, Node):
             visited = []
             queue = [startingNode.name]
@@ -60,63 +60,32 @@ class Graph:
                 for queueItems in self.neighbouringNodes[queue[0]]:
                     queue.append(queueItems)
                 queue.pop(0)
-                if visited and visited[-1] == targetNode.name:
-                    return visited
             print("completed succesfully\n", visited)
         else:
             raise Exception("Please enter an intiated and added starting node!!")
 
-    def dfs(self, startingNode, targetNode):
+    def dfs(self, startingNode):
         if isinstance(startingNode, Node):
             visited = []
             stack = [startingNode.name]
-            layers = {"0":startingNode.name}
-            i = 1
-            path = []
-            temp = []
             while stack:
-                if targetNode.name in stack:
-                    path.append(targetNode.name)
-                    self.pathFinder(i-2, path, layers)
-                    path.append(startingNode.name)
-                    path.reverse()
-                    return path
-
                 poped = stack.pop()
                 if poped in visited:
                     continue
                 visited.append(poped)
                 for stackItems in self.neighbouringNodes[poped]:
-                    if stackItems not in visited:
-                        temp.append(stackItems)
-                        stack.append(stackItems)
-                if temp:
-                    layers[i] = temp
-                    # print(layers)
-                    temp = []
-                    i+=1                
-            # print("completed succesfully\n", visited, "\n\n", path)
+                    stack.append(stackItems)
+            print("completed succesfully\n", visited, "\n\n", stack)
         else:
             raise Exception("Please enter an intiated and added starting node!!")
 
-    def pathFinder(self, i, path, layers):
-        for item in layers[i]:
-            # print(i)
-            # print(layers[i])
-            if i == 1 and item in self.neighbouringNodes[path[-1]]:
-                path.append(item)
-                return path
-            elif i>1 and item in self.neighbouringNodes[path[-1]]:
-                path.append(item)
-                return self.pathFinder(i-1, path, layers)
-
 g = Graph()
 
-x = Node("x")
-y = Node("y")
-z = Node("z")
-p = Node("p")
-r = Node("r")
+x = Node("node1")
+y = Node("node2")
+z = Node("node3")
+p = Node("node4")
+r = Node("node5")
 
 g.add_node(x)
 g.add_node(y)
@@ -130,7 +99,7 @@ g.add_edge("edge3", y, z)
 g.add_edge("edge4", p, z)
 g.add_edge("edge5", p, r)
 
-# g.getGraph()
+g.getGraph()
 
+g.dfs(r)
 
-print(g.dfs(y,p))
