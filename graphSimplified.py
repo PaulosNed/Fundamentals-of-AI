@@ -79,6 +79,20 @@ class Graph:
         else:
             raise Exception("Please enter an intiated and added starting node!!")
 
+    def to_aj_matrix(self):
+        mx = []
+        for nodeX in self.nodes:
+            nodeYs = []
+            for nodeY in self.nodes:
+                if nodeY in self.neighbouringNodes[nodeX]:
+                    nodeYs.append(1)
+                    continue
+                nodeYs.append(0)
+            mx.append(nodeYs)
+        print(mx) 
+
+
+
 g = Graph()
 
 x = Node("node1")
@@ -99,7 +113,7 @@ g.add_edge("edge3", y, z)
 g.add_edge("edge4", p, z)
 g.add_edge("edge5", p, r)
 
-g.getGraph()
-
-g.dfs(r)
+# g.getGraph()
+g.to_aj_matrix()
+# g.dfs(r)
 
