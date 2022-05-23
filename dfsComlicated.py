@@ -1,5 +1,4 @@
-class Node:
-    
+class Node:  
     def __init__(self, name):
         self.name = name
 
@@ -7,13 +6,11 @@ class Node:
         return self.name
 
 class Edge:
-
     def __init__(self, name, node1, node2, weight):
         self.name = name
         self.node1 = node1
         self.node2 = node2
         self.weight = weight
-
 
 class Graph:
     def __init__(self):
@@ -92,7 +89,7 @@ class Graph:
                         stack.append(stackItems)
                 if temp:
                     layers[i] = temp
-                    print(layers)
+                    # print(layers)
                     temp = []
                     i+=1                
             # print("completed succesfully\n", visited, "\n\n", path)
