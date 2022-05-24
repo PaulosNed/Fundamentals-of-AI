@@ -158,6 +158,40 @@ class Graph:
         path.reverse()
         return path
 
+    def AStart(self, startingNode, targetNode):
+        openList = []
+        closedList = []
+        f = {}
+        disFromA = {startingNode : 0}
+        adjacentsList = {}
+        path = []
+        heuristic = {}
+        current = startingNode
+        #heuristic of start to target
+        f[current] = disFromA[current] + heuristic[current]
+        while(current != targetNode)
+            for neighbour in self.neighbouringNodes[current]:
+                if neighbour not in openList and neighbour not in closedList:
+                    openList.append(neighbour)
+                    temp = (current, neighbour)
+                    if temp not in self.edgesOfNode.keys():
+                        temp = (neighbour, current)
+                    disFromA[neighbour] = disFromA[current] + self.edgesOfNode[temp].weight
+                    # calculate heuristic here
+                    tempF = disFromA[neighbour] + heuristic[neighbour]
+                    if neighbour not in f.keys() or tempF < f[neighbour]:
+                        f[neighbour] = tempF
+                        adjacentsList[neighbour] = current
+            closedList.append(current)
+            openList.remove(current)
+            current = min(f, key=f.get)
+
+        last = targetNode
+        while(last != startingNode):
+            path.append(adjacentsList[last].name)
+            last = adjacentsList[last]
+        path.reverse()
+        return path
 
 
     def to_aj_matrix(self):

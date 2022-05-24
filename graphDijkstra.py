@@ -124,36 +124,70 @@ class Graph:
             raise Exception("Please enter an intiated and added starting node!!")
 
     def dijkstra(self, startingNode, targetNode):
-        visited = []
-        adjacentsList = {}
+        distanceTracker = {}
+        adjacentssTracker = {}
         distance = {startingNode : 0}
-        path = []
+        adjacentsList = {}
+        path = [targetNode.name]
         current = startingNode
-        last = targetNode
-        while (len(visited) <= len(self.nodes)):
-            visited.append(current)
-            smallestValue = float('inf')
+        while(current != targetNode):
             for neighbour in self.neighbouringNodes[current]:
-                temp = (current, neighbour)
-                if temp not in self.edgesOfNode.keys():
-                    temp = (neighbour, current)
+                if neighbour not in distance.keys():
+                    temp = (current, neighbour)
+                    if temp not in self.edgesOfNode.keys():
+                        temp = (neighbour, current)
+                    tempD = distance[current] + self.edgesOfNode[temp].weight
+                    if neighbour not in distanceTracker.keys() or distanceTracker[neighbour] > tempD:
+                        distanceTracker[neighbour] = tempD
+                        adjacentssTracker[neighbour] = current
+            nextKey = min(distanceTracker, key=distanceTracker.get)
+            distance[nextKey] = distanceTracker[nextKey]
+            adjacentsList[nextKey] = adjacentssTracker[nextKey]
+            distanceTracker.pop(nextKey)
+            adjacentssTracker.pop(nextKey)
+            current = nextKey
 
-                if neighbour not in distance.keys() or distance[neighbour] > distance[current] + self.edgesOfNode[temp].weight:
-                    adjacentsList[neighbour] = current
-                    distance[neighbour] = distance[current] + self.edgesOfNode[temp].weight
-
-                if neighbour not in visited:
-                    if distance[neighbour] < smallestValue:
-                        smallestValue = distance[neighbour]
-                        nextKey = neighbour
-            current = nextKey    #when current == nextKey .. ERROR
-
+        last = targetNode
         while(last != startingNode):
-            path.append(last.name)
+            path.append(adjacentsList[last].name)
             last = adjacentsList[last]
-        path.append(startingNode.name)
         path.reverse()
-        print("Total Cost: ", distance[targetNode])
+        print("Total Cost: \t", distance[targetNode])
+        return path
+
+    def AStar(self, startingNode, targetNode):
+        openList = []
+        closedList = []
+        f = {}
+        disFromA = {startingNode : 0}
+        adjacentsList = {}
+        path = []
+        heuristic = {}
+        current = startingNode
+        #heuristic of start to target
+        f[current] = disFromA[current] + heuristic[current]
+        while(current != targetNode):
+            for neighbour in self.neighbouringNodes[current]:
+                if neighbour not in openList and neighbour not in closedList:
+                    openList.append(neighbour)
+                    temp = (current, neighbour)
+                    if temp not in self.edgesOfNode.keys():
+                        temp = (neighbour, current)
+                    disFromA[neighbour] = disFromA[current] + self.edgesOfNode[temp].weight
+                    # calculate heuristic here
+                    tempF = disFromA[neighbour] + heuristic[neighbour]
+                    if neighbour not in f.keys() or tempF < f[neighbour]:
+                        f[neighbour] = tempF
+                        adjacentsList[neighbour] = current
+            closedList.append(current)
+            openList.remove(current)
+            current = min(f, key=f.get)
+
+        last = targetNode
+        while(last != startingNode):
+            path.append(adjacentsList[last].name)
+            last = adjacentsList[last]
+        path.reverse()
         return path
 
     def to_aj_matrix(self):
@@ -203,4 +237,4 @@ g.add_edge("edge11", t, p, 9)
 
 # g.getGraph()
 # g.to_aj_matrix()
-print(g.dijkstra(x,q))
+print(g.dijkstra(q,x))
