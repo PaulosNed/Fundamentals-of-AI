@@ -1,5 +1,4 @@
-from asyncio.windows_events import NULL
-
+import math
 
 class Node:
     
@@ -11,7 +10,7 @@ class Node:
 
 class Edge:
 
-    def __init__(self, name, node1, node2, weight, directed):
+    def __init__(self, node1, node2, weight, directed, name):
         self.name = name
         self.node1 = node1
         self.node2 = node2
@@ -24,25 +23,23 @@ class Edge:
 
 class Graph:
     def __init__(self):
-        self.nodes=[]
-        self.edges = []
+        self.nodes={}
         self.neighbouringNodes = {}
         self.edgesOfNode = {}
+        self.positonOfNodes = {}
 
-    
     def add_node(self, node):
         if not isinstance(node, Node):
-            raise Exception("un-initialized node")
-        if node not in self.nodes:
-            self.nodes.append(node)
+            raise Exception("not instantiated node")
+        if node.name not in self.nodes.keys():
+            self.nodes[node.name] = node
             self.neighbouringNodes[node] = []
         
-    def add_edge(self, name, node1, node2, weight = 1, directed = False):
+    def add_edge(self, node1, node2, weight = 1, directed = False, name = None):
         if isinstance(node1, Node) and isinstance(node2, Node):
-            e = Edge(name, node1, node2, weight, directed)
-            self.edges.append(e)
-
-            if node1 in self.nodes and node2 in self.nodes:
+            e = Edge(node1, node2, weight, directed, name)
+            
+            if node1 in self.nodes.values() and node2 in self.nodes.values():
                 self.neighbouringNodes[node2].append(node1)
                 self.edgesOfNode[(node1, node2)] = e 
                 if (e.directed == False):
@@ -52,16 +49,28 @@ class Graph:
 
         else:
             raise Exception("Please initialize the nodes first!!")
+    
+    def addPosition(self, file):
+        wholeFile = open(file, "r")
+        for line in wholeFile.readlines():
+            lineInfo = line.split()
+            if lineInfo[0] in self.nodes.keys():
+                a = self.nodes[lineInfo[0]]
+                if a not in self.positonOfNodes.keys():
+                    radA = (float(lineInfo[1]) * math.pi) / 180
+                    radB = (float(lineInfo[2]) * math.pi) / 180
+                    self.positonOfNodes[a] = (radA, radB)
+            else:
+                raise Exception("node doesn't exist")
 
     def getGraph(self):
-        Nli = []
-        Eli = []
-        for items in self.nodes:
-            Nli.append(items.name) 
-        print("Nodes: " , Nli , "\n\n")
-        for edges in self.edges:
-            Eli.append(edges.name) 
-        print("Edges: ", Eli, "\n\n")
+        print("Nodes: " , self.nodes.keys() , "\n\n")
+        di2 = {}
+        for edgeKey in self.edgesOfNode.keys():
+            temp = edgeKey
+            di2[(temp[0].name, temp[1].name)] = self.edgesOfNode[edgeKey].name
+        print("edges: ", di2.values() ,"\n\n")
+        print("edges connecting the nodes: ", di2 ,"\n\n")
         di = {}
         for key in self.neighbouringNodes.keys():
             li2 = []
@@ -69,14 +78,9 @@ class Graph:
                 li2.append(item.name) 
             di[key.name] = li2
         print("Nodes with their neighbors: ", di ,"\n\n")
-        di2 = {}
-        for edgeKey in self.edgesOfNode.keys():
-            temp = edgeKey
-            di2[(temp[0].name, temp[1].name)] = self.edgesOfNode[edgeKey].name
-        print("edges connecting the nodes: ", di2 ,"\n\n")
 
     def bfs(self, startingNode, targetNode):
-        if isinstance(startingNode, Node):
+        if isinstance(startingNode, Node) and isinstance(targetNode, Node):
             visited = []
             queue = [startingNode]
             adjacentsList = {}
@@ -155,16 +159,21 @@ class Graph:
         print("Total Cost: \t", distance[targetNode])
         return path
 
-    def AStar(self, startingNode, targetNode):
+    def AStar(self, file,  startingNode, targetNode):
+        self.addPosition(file)
         openList = []
         closedList = []
+        current = startingNode
         f = {}
         disFromA = {startingNode : 0}
         adjacentsList = {}
-        path = []
+        path = [targetNode.name]
         heuristic = {}
-        current = startingNode
         #heuristic of start to target
+        dist= 6371.01 * math.acos(math.sin(self.positonOfNodes[current][0])*math.sin(self.positonOfNodes[targetNode][0]) + math.cos(self.positonOfNodes[current][0])*math.cos(self.positonOfNodes[targetNode][0])*math.cos(self.positonOfNodes[targetNode][1] - self.positonOfNodes[current][1]))
+        dist = round(dist, 3)
+        heuristic[current] = dist
+        #end of code
         f[current] = disFromA[current] + heuristic[current]
         while(current != targetNode):
             for neighbour in self.neighbouringNodes[current]:
@@ -175,26 +184,42 @@ class Graph:
                         temp = (neighbour, current)
                     disFromA[neighbour] = disFromA[current] + self.edgesOfNode[temp].weight
                     # calculate heuristic here
+                    latitude_start = self.positonOfNodes[neighbour][0]
+                    latitude_end = self.positonOfNodes[targetNode][0]
+                    longtiude_start = self.positonOfNodes[neighbour][1]
+                    longtiude_end = self.positonOfNodes[targetNode][1]
+                    dist= 6371.01 * math.acos(math.sin(latitude_start)*math.sin(latitude_end) + math.cos(latitude_start)*math.cos(latitude_end)*math.cos(longtiude_end - longtiude_start))
+                    dist = round(dist, 3)
+                    heuristic[neighbour] = dist
+                    # end of heuristic 
                     tempF = disFromA[neighbour] + heuristic[neighbour]
                     if neighbour not in f.keys() or tempF < f[neighbour]:
                         f[neighbour] = tempF
                         adjacentsList[neighbour] = current
             closedList.append(current)
+            min = f[openList[0]]
+            current = openList[0]
+            for item in openList:
+                if f[item] < min:
+                    min = f[item]
+                    current = item
             openList.remove(current)
-            current = min(f, key=f.get)
+
+
 
         last = targetNode
         while(last != startingNode):
             path.append(adjacentsList[last].name)
             last = adjacentsList[last]
         path.reverse()
+        print("Total Cost:\t", disFromA[targetNode])
         return path
 
     def to_aj_matrix(self):
         mx = []
-        for nodeX in self.nodes:
+        for nodeX in self.nodes.values():
             nodeYs = []
-            for nodeY in self.nodes:
+            for nodeY in self.nodes.values():
                 if nodeY in self.neighbouringNodes[nodeX]:
                     nodeYs.append(1)
                     continue
@@ -202,39 +227,32 @@ class Graph:
             mx.append(nodeYs)
         print(mx) 
 
-g = Graph()
+def Initializer(fileName):
+    g = Graph()
 
-x = Node("x")
-y = Node("y")
-z = Node("z")
-p = Node("p")
-r = Node("r")
-s = Node("s")
-q = Node("q")
-t = Node("t")
-
-g.add_node(x)
-g.add_node(y)
-g.add_node(z)
-g.add_node(p)
-g.add_node(r)
-g.add_node(s)
-g.add_node(q)
-g.add_node(t)
-
-g.add_edge("edge1", x, y, 5)
-g.add_edge("edge2", x, z, 6)
-g.add_edge("edge3", y, z, 7)
-g.add_edge("edge4", p, z, 2)
-g.add_edge("edge5", p, r, 1)
-g.add_edge("edge6", p, q, 3)
-g.add_edge("edge7", q, y, 15)
-g.add_edge("edge8", x, s, 1)
-g.add_edge("edge9", z, s, 4)
-g.add_edge("edge10", s, t, 8)
-g.add_edge("edge11", t, p, 9)
-
-
-# g.getGraph()
-# g.to_aj_matrix()
-print(g.dijkstra(q,x))
+    wholeInfo = open(fileName, "r")
+    for line in wholeInfo.readlines():
+        lineInfo = line.split()
+        if lineInfo[0] not in g.nodes.keys():
+            a = Node(lineInfo[0])
+            g.add_node(a)
+        if lineInfo[1] not in g.nodes.keys():
+            b = Node(lineInfo[1])
+            g.add_node(b)
+        node1 = g.nodes[lineInfo[0]]
+        node2 = g.nodes[lineInfo[1]]
+        temp = (node1, node2)
+        if temp not in g.edgesOfNode.keys():
+            temp = (node2, node1)
+        if temp not in g.edgesOfNode.keys():    
+            g.add_edge(node1, node2, float(lineInfo[2]), name=lineInfo[3])
+    
+    # g.getGraph()
+    firstNode = g.nodes["Arad"]
+    secondNode = g.nodes["Giurgiu"]
+    print(g.bfs(firstNode, secondNode))
+    print(g.dfs(firstNode, secondNode))
+    print(g.dijkstra(firstNode, secondNode))
+    print(g.AStar("position.txt" ,firstNode, secondNode))
+    
+Initializer(fileName="graph.txt")
