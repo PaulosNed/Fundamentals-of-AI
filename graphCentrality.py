@@ -1,6 +1,4 @@
-import math
-import time
-from statistics import mean
+from math import *
 
 class Node:
     
@@ -59,11 +57,25 @@ class Graph:
             if lineInfo[0] in self.nodes.keys():
                 a = self.nodes[lineInfo[0]]
                 if a not in self.positonOfNodes.keys():
-                    radA = (float(lineInfo[1]) * math.pi) / 180
-                    radB = (float(lineInfo[2]) * math.pi) / 180
-                    self.positonOfNodes[a] = (radA, radB)
+                    # radA = (float(lineInfo[1]) * pi) / 180
+                    # radB = (float(lineInfo[2]) * pi) / 180
+                    self.positonOfNodes[a] = (float(lineInfo[1]), float(lineInfo[2]))
             else:
                 raise Exception("node doesn't exist")
+        
+    def calculateHeuristic(Self, start, end):
+        latitude_start = Self.positonOfNodes[start][0]
+        latitude_end = Self.positonOfNodes[end][0]
+        longtiude_start = Self.positonOfNodes[start][1]
+        longtiude_end =Self.positonOfNodes[end][1]
+
+        longtiude_diff = longtiude_end - longtiude_start
+        latitude_diff = latitude_end - latitude_start
+        a = sin(latitude_diff / 2)**2 + cos(latitude_start) * cos(latitude_end) * sin(longtiude_diff / 2)**2
+
+        heuristic_value = 12742.02 * asin(sqrt(a))
+
+        return heuristic_value
 
     def getGraph(self):
         print("Nodes: " , self.nodes.keys() , "\n\n")
@@ -158,85 +170,73 @@ class Graph:
             path.append(adjacentsList[last].name)
             last = adjacentsList[last]
         path.reverse()
-        print("Total Cost: \t", distance[targetNode])
+        # print("Total Cost: \t", distance[targetNode])
         return path
-
+        
     def AStar(self, file,  startingNode, targetNode):
-        beginAdd = time.perf_counter()
         self.addPosition(file)
-        endAdd = time.perf_counter()
-        addTime = (endAdd - beginAdd)*1000
-        openList = []
-        closedList = []
-        current = startingNode
-        f = {}
-        disFromA = {startingNode : 0}
+        distanceTracker = {}
+        adjacentssTracker = {}
+        distance = {startingNode : 0}
         adjacentsList = {}
-        path = [targetNode.name]
         heuristic = {}
-        #heuristic of start to target
-        # dist= 6371.01 * math.acos(math.sin(self.positonOfNodes[current][0])*math.sin(self.positonOfNodes[targetNode][0]) + math.cos(self.positonOfNodes[current][0])*math.cos(self.positonOfNodes[targetNode][0])*math.cos(self.positonOfNodes[targetNode][1] - self.positonOfNodes[current][1]))
-        # dist = round(dist, 3)
-        # heuristic[current] = dist
-        #end of code
-        # f[current] = disFromA[current] + heuristic[current]
+        f = {}
+        path = [targetNode.name]
+        current = startingNode
         while(current != targetNode):
             for neighbour in self.neighbouringNodes[current]:
-                if neighbour not in openList and neighbour not in closedList:
-                    openList.append(neighbour)
+                if neighbour not in distance.keys():
                     temp = (current, neighbour)
                     if temp not in self.edgesOfNode.keys():
                         temp = (neighbour, current)
-                    disFromA[neighbour] = disFromA[current] + self.edgesOfNode[temp].weight
-                    # calculate heuristic here
-                    begin = time.perf_counter()
-                    latitude_start = self.positonOfNodes[neighbour][0]
-                    latitude_end = self.positonOfNodes[targetNode][0]
-                    longtiude_start = self.positonOfNodes[neighbour][1]
-                    longtiude_end = self.positonOfNodes[targetNode][1]
-                    dist= 6371.01 * math.acos((math.sin(latitude_start)*math.sin(latitude_end) + math.cos(latitude_start)*math.cos(latitude_end)*math.cos(longtiude_end - longtiude_start))%1)
-                    heuristic[neighbour] = dist
-                    end = time.perf_counter()
-                    heurTime = (end-begin)*1000
-                    # end of heuristic 
-                    tempF = disFromA[neighbour] + heuristic[neighbour]
-                    if neighbour not in f.keys() or tempF < f[neighbour]:
+                    tempD = distance[current] + self.edgesOfNode[temp].weight
+                    heuristic[neighbour] = self.calculateHeuristic(neighbour, targetNode)
+                    tempF = heuristic[neighbour] + tempD 
+                    if neighbour not in f.keys() or f[neighbour] > tempF:
+                        distanceTracker[neighbour] = tempD
+                        adjacentssTracker[neighbour] = current
                         f[neighbour] = tempF
-                        adjacentsList[neighbour] = current
-            closedList.append(current)
-            NextCurrent = min(f, key=f.get)
-            # print(current)
-            # print(NextCurrent)
-            # l= []
-            # for item in f.keys():
-            #     l.append(item.name)
-            # print(l)
-            adjacentsList[NextCurrent] = current
-            current = NextCurrent
-            f.pop(NextCurrent)
-            openList.remove(current)
-
-
+            nextKey = min(f, key=f.get)
+            distance[nextKey] = distanceTracker[nextKey]
+            adjacentsList[nextKey] = adjacentssTracker[nextKey]
+            f.pop(nextKey)
+            distanceTracker.pop(nextKey)
+            adjacentssTracker.pop(nextKey)
+            current = nextKey
 
         last = targetNode
         while(last != startingNode):
             path.append(adjacentsList[last].name)
             last = adjacentsList[last]
         path.reverse()
-        # print("Total Cost:\t", disFromA[targetNode])
-        return path, disFromA[targetNode], (heurTime+addTime)
+        # print("Total Cost: \t", distance[targetNode])
+        return path
 
-    def to_aj_matrix(self):
-        mx = []
-        for nodeX in self.nodes.values():
-            nodeYs = []
-            for nodeY in self.nodes.values():
-                if nodeY in self.neighbouringNodes[nodeX]:
-                    nodeYs.append(1)
-                    continue
-                nodeYs.append(0)
-            mx.append(nodeYs)
-        print(mx) 
+    def degreeCentrality(self):
+        degree ={}
+        length = len(self.nodes) - 1
+        for item in self.neighbouringNodes.keys():
+            degree[item.name] = len(self.neighbouringNodes[item]) / length
+        shortest = max(degree, key=degree.get)
+        print(shortest, degree[shortest])
+        print(degree)
+
+    def betweenessCentralityDijkstra(self):
+        betweeness = {}
+        length = len(self.nodes)
+        denominator = (length * (length-1)) / 2
+        nodesList = self.nodes.values()
+        nodesList = list(nodesList)
+        for i in range(length):
+            for j in range (i+1, length):
+                answer = self.dijkstra(nodesList[i],nodesList[j])
+                if len(answer) > 2:
+                    for k in range(1, len(answer)-1):
+                        if answer[k] not in betweeness.keys():
+                            betweeness[answer[k]] = 1 / (denominator)
+                        else:
+                            betweeness[answer[k]] = betweeness[answer[k]] + (1/(denominator))
+        print(betweeness)
 
     def betweenessCentralityAStar(self, file):
         betweeness = {}
@@ -255,26 +255,17 @@ class Graph:
                             betweeness[answer[k]] = betweeness[answer[k]] + (1/(denominator))
         print(betweeness)
 
-    def AStarTester(self, file):
-        length = len(self.nodes)
-        nodesList = self.nodes.values()
-        nodesList = list(nodesList)
-        timeList = []
-        lengthLits = []
-        hopeList = []
-        for i in range(length):
-            for j in range (length):
-                if j==i:
+    def to_aj_matrix(self):
+        mx = []
+        for nodeX in self.nodes.values():
+            nodeYs = []
+            for nodeY in self.nodes.values():
+                if nodeY in self.neighbouringNodes[nodeX]:
+                    nodeYs.append(1)
                     continue
-                begin = time.perf_counter()
-                answer = self.AStar(file,nodesList[i],nodesList[j])
-                end =time.perf_counter() 
-                t = ((end - begin)*1000) - answer[2]
-                timeList.append(t)
-                hopeList.append(len(answer[0]))
-                lengthLits.append(answer[1])
-        
-        return mean(timeList), mean(lengthLits), mean(hopeList)
+                nodeYs.append(0)
+            mx.append(nodeYs)
+        print(mx) 
 
 def Initializer(fileName):
     g = Graph()
@@ -303,7 +294,8 @@ def Initializer(fileName):
     # print(g.dfs(firstNode, secondNode))
     # print(g.dijkstra(firstNode, secondNode))
     # print(g.AStar("position.txt" ,firstNode, secondNode))
-    # g.betweenessCentralityAStar("position.txt")
-    print(g.AStarTester("position.txt"))
+    g.betweenessCentralityDijkstra()
+    g.betweenessCentralityAStar("position.txt")
+    # g.degreeCentrality()
     
 Initializer(fileName="graph.txt")

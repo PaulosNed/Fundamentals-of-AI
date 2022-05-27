@@ -1,4 +1,6 @@
 import math
+import time
+from statistics import mean
 
 class Node:
     
@@ -87,12 +89,18 @@ class Graph:
             path = [targetNode.name]
             while queue:
                 if targetNode in queue:
+                    length = 0
                     temp = targetNode
                     while(temp != startingNode):
                         path.append(adjacentsList[temp].name)
+                        coor = (temp, adjacentsList[temp])
+                        if coor not in self.edgesOfNode.keys():
+                            coor = (adjacentsList[temp], temp)
+                        curr_len = self.edgesOfNode[coor].weight
+                        length = length + curr_len
                         temp = adjacentsList[temp]
                     path.reverse()
-                    return path
+                    return path, length
                 visited.append(queue[0])
                 for queueItems in self.neighbouringNodes[queue[0]]:
                     if queueItems not in visited and queueItems not in queue:
@@ -112,11 +120,17 @@ class Graph:
             while stack:
                 if targetNode in stack:
                     temp = targetNode
+                    length = 0
                     while(temp != startingNode):
                         path.append(adjacentsList[temp].name)
+                        coor = (temp, adjacentsList[temp])
+                        if coor not in self.edgesOfNode.keys():
+                            coor = (adjacentsList[temp], temp)
+                        curr_len = self.edgesOfNode[coor].weight
+                        length = length + curr_len
                         temp = adjacentsList[temp]
                     path.reverse()
-                    return path
+                    return path, length
                 poped = stack.pop()
                 visited.append(poped)
                 for stackItems in self.neighbouringNodes[poped]:
@@ -156,11 +170,14 @@ class Graph:
             path.append(adjacentsList[last].name)
             last = adjacentsList[last]
         path.reverse()
-        print("Total Cost: \t", distance[targetNode])
-        return path
+        # print("Total Cost: \t", distance[targetNode])
+        return path, distance[targetNode]
         
     def AStar(self, file,  startingNode, targetNode):
+        beginAdd = time.perf_counter()
         self.addPosition(file)
+        endAdd = time.perf_counter()
+        addTime = (endAdd-beginAdd)*1000
         distanceTracker = {}
         adjacentssTracker = {}
         distance = {startingNode : 0}
@@ -176,7 +193,15 @@ class Graph:
                     if temp not in self.edgesOfNode.keys():
                         temp = (neighbour, current)
                     tempD = distance[current] + self.edgesOfNode[temp].weight
-                    heuristic[neighbour] = 6371.01 * math.acos(math.sin(self.positonOfNodes[neighbour][0])*math.sin(self.positonOfNodes[targetNode][0]) + math.cos(self.positonOfNodes[neighbour][0])*math.cos(self.positonOfNodes[targetNode][0])*math.cos(self.positonOfNodes[targetNode][1] - self.positonOfNodes[neighbour][1]))
+                    begin = time.perf_counter()
+                    tempH = math.sin(self.positonOfNodes[neighbour][0])*math.sin(self.positonOfNodes[targetNode][0]) + math.cos(self.positonOfNodes[neighbour][0])*math.cos(self.positonOfNodes[targetNode][0])*math.cos(self.positonOfNodes[targetNode][1] - self.positonOfNodes[neighbour][1])
+                    if tempH < 0:
+                        tempH = (tempH%1) - 1
+                    else:
+                        tempH = tempH%1
+                    heuristic[neighbour] = 6371.01 * math.acos(tempH)
+                    end = time.perf_counter()
+                    heruTime = (end-begin)*1000
                     tempF = heuristic[neighbour] + tempD 
                     if neighbour not in f.keys() or f[neighbour] > tempF:
                         distanceTracker[neighbour] = tempD
@@ -195,8 +220,9 @@ class Graph:
             path.append(adjacentsList[last].name)
             last = adjacentsList[last]
         path.reverse()
-        print("Total Cost: \t", distance[targetNode])
-        return path
+        delay = heruTime + addTime
+        # print("Total Cost: \t", distance[targetNode])
+        return path, distance[targetNode], delay
 
     def to_aj_matrix(self):
         mx = []
@@ -209,6 +235,90 @@ class Graph:
                 nodeYs.append(0)
             mx.append(nodeYs)
         print(mx) 
+
+    def bfsTester(self):
+        length = len(self.nodes)
+        nodesList = self.nodes.values()
+        nodesList = list(nodesList)
+        timeList = []
+        lengthLits = []
+        hopeList = []
+        for i in range(length):
+            for j in range (length):
+                if j==i:
+                    continue
+                begin = time.perf_counter()
+                answer = self.bfs(nodesList[i],nodesList[j])
+                end =time.perf_counter() 
+                t = (end - begin)*1000
+                timeList.append(t)
+                hopeList.append(len(answer[0]))
+                lengthLits.append(answer[1])
+        
+        return mean(timeList), mean(lengthLits), mean(hopeList)
+    
+    def dfsTester(self):
+        length = len(self.nodes)
+        nodesList = self.nodes.values()
+        nodesList = list(nodesList)
+        timeList = []
+        lengthLits = []
+        hopeList = []
+        for i in range(length):
+            for j in range (length):
+                if j==i:
+                    continue
+                begin = time.perf_counter()
+                answer = self.dfs(nodesList[i],nodesList[j])
+                end =time.perf_counter() 
+                t = (end - begin)*1000
+                timeList.append(t)
+                hopeList.append(len(answer[0]))
+                lengthLits.append(answer[1])
+        
+        return mean(timeList), mean(lengthLits), mean(hopeList)
+
+    def dijkstraTester(self):
+        length = len(self.nodes)
+        nodesList = self.nodes.values()
+        nodesList = list(nodesList)
+        timeList = []
+        lengthLits = []
+        hopeList = []
+        for i in range(length):
+            for j in range (length):
+                if j==i:
+                    continue
+                begin = time.perf_counter()
+                answer = self.dijkstra(nodesList[i],nodesList[j])
+                end =time.perf_counter() 
+                t = (end - begin)*1000
+                timeList.append(t)
+                hopeList.append(len(answer[0]))
+                lengthLits.append(answer[1])
+        
+        return mean(timeList), mean(lengthLits), mean(hopeList)
+    
+    def AStarTester(self, file):
+        length = len(self.nodes)
+        nodesList = self.nodes.values()
+        nodesList = list(nodesList)
+        timeList = []
+        lengthLits = []
+        hopeList = []
+        for i in range(length):
+            for j in range (length):
+                if j==i:
+                    continue
+                begin = time.perf_counter()
+                answer = self.AStar(file,nodesList[i],nodesList[j])
+                end =time.perf_counter() 
+                t = ((end - begin)*1000) - answer[2]
+                timeList.append(t)
+                hopeList.append(len(answer[0]))
+                lengthLits.append(answer[1])
+        
+        return mean(timeList), mean(lengthLits), mean(hopeList)
 
 def Initializer(fileName):
     g = Graph()
@@ -232,10 +342,14 @@ def Initializer(fileName):
     
     # g.getGraph()
     firstNode = g.nodes["Oradea"]
-    secondNode = g.nodes["Vaslui"]
-    print(g.bfs(firstNode, secondNode))
-    print(g.dfs(firstNode, secondNode))
-    print(g.dijkstra(firstNode, secondNode))
-    print(g.AStar("position.txt" ,firstNode, secondNode))
+    secondNode = g.nodes["Pitesti"]
+    # print(g.bfsTest(firstNode, secondNode))
+    # print(g.dfs(firstNode, secondNode))
+    # print(g.dijkstra(firstNode, secondNode))
+    # print(g.AStar("position.txt" ,firstNode, secondNode))
+    print(g.bfsTester())
+    print(g.dfsTester())
+    print(g.dijkstraTester())
+    print(g.AStarTester("position.txt"))
     
 Initializer(fileName="graph.txt")
