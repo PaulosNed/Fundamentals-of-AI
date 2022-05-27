@@ -1,9 +1,12 @@
 from math import *
 
+
 class Node:
     
-    def __init__(self, name):
+    def __init__(self, name, latitude = None, longitude = None):
         self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
 
     def __str__(self):
         return self.name
@@ -56,22 +59,13 @@ class Graph:
             lineInfo = line.split()
             if lineInfo[0] in self.nodes.keys():
                 a = self.nodes[lineInfo[0]]
-                if a not in self.positonOfNodes.keys():
-                    # radA = (float(lineInfo[1]) * pi) / 180
-                    # radB = (float(lineInfo[2]) * pi) / 180
-                    self.positonOfNodes[a] = (float(lineInfo[1]), float(lineInfo[2]))
-            else:
-                raise Exception("node doesn't exist")
-        
-    def calculateHeuristic(Self, start, end):
-        latitude_start = Self.positonOfNodes[start][0]
-        latitude_end = Self.positonOfNodes[end][0]
-        longtiude_start = Self.positonOfNodes[start][1]
-        longtiude_end =Self.positonOfNodes[end][1]
+                a.latitude = radians(float(lineInfo[1]))
+                a.longitude = radians(float(lineInfo[2]))
 
-        longtiude_diff = longtiude_end - longtiude_start
-        latitude_diff = latitude_end - latitude_start
-        a = sin(latitude_diff / 2)**2 + cos(latitude_start) * cos(latitude_end) * sin(longtiude_diff / 2)**2
+    def calculateHeuristic(Self, start, end):
+        longtiude_diff = end.longitude - start.longitude
+        latitude_diff = end.latitude - start.latitude
+        a = sin(latitude_diff / 2)**2 + cos(start.latitude) * cos(end.latitude) * sin(longtiude_diff / 2)**2
 
         heuristic_value = 12742.02 * asin(sqrt(a))
 
@@ -214,12 +208,19 @@ class Graph:
 
     def degreeCentrality(self):
         degree ={}
+        maxi = []
         length = len(self.nodes) - 1
         for item in self.neighbouringNodes.keys():
             degree[item.name] = len(self.neighbouringNodes[item]) / length
-        shortest = max(degree, key=degree.get)
-        print(shortest, degree[shortest])
-        print(degree)
+        maxDegree = max(degree, key=degree.get)
+        maxi.append(maxDegree)
+        for item in degree.keys():
+            if item == maxDegree:
+                continue
+            if degree[item] == degree[maxDegree]:
+                maxi.append(item)
+        print("\n\nThe Node(s) with maximum degree centrality is/are: ",maxi, "with degree centrality",degree[maxDegree])
+        print("\nDegree of All nodes: ",degree)
 
     def betweenessCentralityDijkstra(self):
         betweeness = {}
@@ -294,8 +295,8 @@ def Initializer(fileName):
     # print(g.dfs(firstNode, secondNode))
     # print(g.dijkstra(firstNode, secondNode))
     # print(g.AStar("position.txt" ,firstNode, secondNode))
-    g.betweenessCentralityDijkstra()
-    g.betweenessCentralityAStar("position.txt")
-    # g.degreeCentrality()
+    # g.betweenessCentralityDijkstra()
+    # g.betweenessCentralityAStar("position.txt")
+    g.degreeCentrality()
     
 Initializer(fileName="graph.txt")

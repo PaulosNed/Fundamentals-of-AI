@@ -1,11 +1,13 @@
-import math
+from math import *
 import time
 from statistics import mean
 
 class Node:
     
-    def __init__(self, name):
+    def __init__(self, name, latitude = None, longitude = None):
         self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
 
     def __str__(self):
         return self.name
@@ -58,13 +60,17 @@ class Graph:
             lineInfo = line.split()
             if lineInfo[0] in self.nodes.keys():
                 a = self.nodes[lineInfo[0]]
-                if a not in self.positonOfNodes.keys():
-                    radA = (float(lineInfo[1]) * math.pi) / 180
-                    radB = (float(lineInfo[2]) * math.pi) / 180
-                    self.positonOfNodes[a] = (radA, radB)
-            else:
-                raise Exception("node doesn't exist")
+                a.latitude = radians(float(lineInfo[1]))
+                a.longitude = radians(float(lineInfo[2]))
 
+    def calculateHeuristic(Self, start, end):
+        longtiude_diff = end.longitude - start.longitude
+        latitude_diff = end.latitude - start.latitude
+        a = sin(latitude_diff / 2)**2 + cos(start.latitude) * cos(end.latitude) * sin(longtiude_diff / 2)**2
+
+        heuristic_value = 12742.02 * asin(sqrt(a))
+
+        return heuristic_value
     def getGraph(self):
         print("Nodes: " , self.nodes.keys() , "\n\n")
         di2 = {}
@@ -194,12 +200,7 @@ class Graph:
                         temp = (neighbour, current)
                     tempD = distance[current] + self.edgesOfNode[temp].weight
                     begin = time.perf_counter()
-                    tempH = math.sin(self.positonOfNodes[neighbour][0])*math.sin(self.positonOfNodes[targetNode][0]) + math.cos(self.positonOfNodes[neighbour][0])*math.cos(self.positonOfNodes[targetNode][0])*math.cos(self.positonOfNodes[targetNode][1] - self.positonOfNodes[neighbour][1])
-                    if tempH < 0:
-                        tempH = (tempH%1) - 1
-                    else:
-                        tempH = tempH%1
-                    heuristic[neighbour] = 6371.01 * math.acos(tempH)
+                    heuristic[neighbour] = self.calculateHeuristic(neighbour, targetNode)
                     end = time.perf_counter()
                     heruTime = (end-begin)*1000
                     tempF = heuristic[neighbour] + tempD 
@@ -340,13 +341,12 @@ def Initializer(fileName):
         if temp not in g.edgesOfNode.keys():    
             g.add_edge(node1, node2, float(lineInfo[2]), name=lineInfo[3])
     
-    # g.getGraph()
     firstNode = g.nodes["Oradea"]
-    secondNode = g.nodes["Pitesti"]
-    # print(g.bfsTest(firstNode, secondNode))
-    # print(g.dfs(firstNode, secondNode))
-    # print(g.dijkstra(firstNode, secondNode))
-    # print(g.AStar("position.txt" ,firstNode, secondNode))
+    secondNode = g.nodes["Vaslui"]
+    print(g.bfs(firstNode, secondNode))
+    print(g.dfs(firstNode, secondNode))
+    print(g.dijkstra(firstNode, secondNode))
+    print(g.AStar("position.txt" ,firstNode, secondNode))
     print(g.bfsTester())
     print(g.dfsTester())
     print(g.dijkstraTester())
