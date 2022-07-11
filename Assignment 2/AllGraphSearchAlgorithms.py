@@ -202,7 +202,7 @@ class Graph:
                     begin = time.perf_counter()
                     heuristic[neighbour] = self.calculateHeuristic(neighbour, targetNode)
                     end = time.perf_counter()
-                    heruTime = (end-begin)*1000
+                    addTime += (end-begin)*1000
                     tempF = heuristic[neighbour] + tempD 
                     if neighbour not in f.keys() or f[neighbour] > tempF:
                         distanceTracker[neighbour] = tempD
@@ -221,9 +221,8 @@ class Graph:
             path.append(adjacentsList[last].name)
             last = adjacentsList[last]
         path.reverse()
-        delay = heruTime + addTime
         # print("Total Cost: \t", distance[targetNode])
-        return path, distance[targetNode], delay
+        return path, distance[targetNode], addTime
 
     def to_aj_matrix(self):
         mx = []
@@ -256,6 +255,7 @@ class Graph:
                 hopeList.append(len(answer[0]))
                 lengthLits.append(answer[1])
         
+        print("Average BFS length: ", mean(lengthLits))
         return mean(timeList), mean(lengthLits), mean(hopeList)
     
     def dfsTester(self):
@@ -277,6 +277,7 @@ class Graph:
                 hopeList.append(len(answer[0]))
                 lengthLits.append(answer[1])
         
+        print("Average DFS length: ", mean(lengthLits))
         return mean(timeList), mean(lengthLits), mean(hopeList)
 
     def dijkstraTester(self):
@@ -298,6 +299,7 @@ class Graph:
                 hopeList.append(len(answer[0]))
                 lengthLits.append(answer[1])
         
+        print("Average Dijkstra length: ", mean(lengthLits))
         return mean(timeList), mean(lengthLits), mean(hopeList)
     
     def AStarTester(self, file):
@@ -319,6 +321,7 @@ class Graph:
                 hopeList.append(len(answer[0]))
                 lengthLits.append(answer[1])
         
+        print("Average A* length: ", mean(lengthLits))
         return mean(timeList), mean(lengthLits), mean(hopeList)
 
 def Initializer(fileName):
@@ -341,14 +344,13 @@ def Initializer(fileName):
         if temp not in g.edgesOfNode.keys():    
             g.add_edge(node1, node2, float(lineInfo[2]), name=lineInfo[3])
     
-    firstNode = g.nodes["Oradea"]
-    secondNode = g.nodes["Vaslui"]
-    print(g.bfs(firstNode, secondNode))
-    print(g.dfs(firstNode, secondNode))
-    print(g.dijkstra(firstNode, secondNode))
-    print(g.AStar("position.txt" ,firstNode, secondNode))
-    print(g.bfsTester())
-    print(g.dfsTester())
+    return g
+    # print(g.bfs(firstNode, secondNode))
+    # print(g.dfs(firstNode, secondNode))
+    # print(g.dijkstra(firstNode, secondNode))
+    # print(g.AStar("position.txt" ,firstNode, secondNode))
+    # g.bfsTester()
+    # g.dfsTester()
     print(g.dijkstraTester())
     print(g.AStarTester("position.txt"))
     

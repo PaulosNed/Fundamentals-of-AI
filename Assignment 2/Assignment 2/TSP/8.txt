@@ -1,0 +1,7 @@
+Oradea Zerind 71
+Oradea Sibiu 151
+Zerind Arad 75
+Arad Timisoara 118
+Arad Sibiu 140
+Sibiu Fagaras 99
+Sibiu Rimnicu_Vilcea 80

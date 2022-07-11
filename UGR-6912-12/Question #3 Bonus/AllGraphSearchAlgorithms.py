@@ -1,8 +1,9 @@
 from math import *
-from statistics import mean
 import time
+from statistics import mean
 
 class Node:
+    
     def __init__(self, name, latitude = None, longitude = None):
         self.name = name
         self.latitude = latitude
@@ -10,7 +11,6 @@ class Node:
 
     def __str__(self):
         return self.name
-
 
 class Edge:
 
@@ -67,11 +67,11 @@ class Graph:
         longtiude_diff = end.longitude - start.longitude
         latitude_diff = end.latitude - start.latitude
         a = sin(latitude_diff / 2)**2 + cos(start.latitude) * cos(end.latitude) * sin(longtiude_diff / 2)**2
-
         heuristic_value = 12742.02 * asin(sqrt(a))
 
-        return heuristic_value
+        heuristic_value = 6371.01 * acos(sin(start.latitude)*sin(end.latitude) + cos(start.latitude) * cos(end.latitude)*(cos(start.longitude) - end.longitude))
 
+        return heuristic_value
     def getGraph(self):
         print("Nodes: " , self.nodes.keys() , "\n\n")
         di2 = {}
@@ -96,12 +96,18 @@ class Graph:
             path = [targetNode.name]
             while queue:
                 if targetNode in queue:
+                    length = 0
                     temp = targetNode
                     while(temp != startingNode):
                         path.append(adjacentsList[temp].name)
+                        coor = (temp, adjacentsList[temp])
+                        if coor not in self.edgesOfNode.keys():
+                            coor = (adjacentsList[temp], temp)
+                        curr_len = self.edgesOfNode[coor].weight
+                        length = length + curr_len
                         temp = adjacentsList[temp]
                     path.reverse()
-                    return path
+                    return path, length
                 visited.append(queue[0])
                 for queueItems in self.neighbouringNodes[queue[0]]:
                     if queueItems not in visited and queueItems not in queue:
@@ -121,11 +127,17 @@ class Graph:
             while stack:
                 if targetNode in stack:
                     temp = targetNode
+                    length = 0
                     while(temp != startingNode):
                         path.append(adjacentsList[temp].name)
+                        coor = (temp, adjacentsList[temp])
+                        if coor not in self.edgesOfNode.keys():
+                            coor = (adjacentsList[temp], temp)
+                        curr_len = self.edgesOfNode[coor].weight
+                        length = length + curr_len
                         temp = adjacentsList[temp]
                     path.reverse()
-                    return path
+                    return path, length
                 poped = stack.pop()
                 visited.append(poped)
                 for stackItems in self.neighbouringNodes[poped]:
@@ -167,56 +179,107 @@ class Graph:
         path.reverse()
         # print("Total Cost: \t", distance[targetNode])
         return path, distance[targetNode]
-
+        
     def AStar(self, file,  startingNode, targetNode):
         beginAdd = time.perf_counter()
         self.addPosition(file)
         endAdd = time.perf_counter()
         addTime = (endAdd-beginAdd)*1000
-        openList = []
-        closedList = []
-        current = startingNode
-        f = {}
-        disFromA = {startingNode : 0}
+        distanceTracker = {}
+        adjacentssTracker = {}
+        distance = {startingNode : 0}
         adjacentsList = {}
-        path = [targetNode.name]
         heuristic = {}
+        f = {}
+        path = [targetNode.name]
+        current = startingNode
         while(current != targetNode):
             for neighbour in self.neighbouringNodes[current]:
-                if neighbour not in openList and neighbour not in closedList:
-                    openList.append(neighbour)
+                if neighbour not in distance.keys():
                     temp = (current, neighbour)
                     if temp not in self.edgesOfNode.keys():
                         temp = (neighbour, current)
-                    disFromA[neighbour] = disFromA[current] + self.edgesOfNode[temp].weight
-                    # calculate heuristic here
+                    tempD = distance[current] + self.edgesOfNode[temp].weight
                     begin = time.perf_counter()
                     heuristic[neighbour] = self.calculateHeuristic(neighbour, targetNode)
-                    end =time.perf_counter()
-                    heurTime = (end-begin)*1000
-                    # end of heuristic 
-                    tempF = disFromA[neighbour] + heuristic[neighbour]
-                    if neighbour not in f.keys() or tempF < f[neighbour]:
+                    end = time.perf_counter()
+                    addTime += (end-begin)*1000
+                    tempF = heuristic[neighbour] + tempD 
+                    if neighbour not in f.keys() or f[neighbour] > tempF:
+                        distanceTracker[neighbour] = tempD
+                        adjacentssTracker[neighbour] = current
                         f[neighbour] = tempF
-                        adjacentsList[neighbour] = current
-            closedList.append(current)
-            min = f[openList[0]]
-            current = openList[0]
-            for item in openList:
-                if f[item] < min:
-                    min = f[item]
-                    current = item
-            openList.remove(current)
-
-
+            nextKey = min(f, key=f.get)
+            distance[nextKey] = distanceTracker[nextKey]
+            adjacentsList[nextKey] = adjacentssTracker[nextKey]
+            f.pop(nextKey)
+            distanceTracker.pop(nextKey)
+            adjacentssTracker.pop(nextKey)
+            current = nextKey
 
         last = targetNode
         while(last != startingNode):
             path.append(adjacentsList[last].name)
             last = adjacentsList[last]
         path.reverse()
-        # print("Total Cost:\t", disFromA[targetNode])
-        return path, disFromA[targetNode], heurTime+addTime
+        # print("Total Cost: \t", distance[targetNode])
+        return path, distance[targetNode], addTime
+
+    def to_aj_matrix(self):
+        mx = []
+        for nodeX in self.nodes.values():
+            nodeYs = []
+            for nodeY in self.nodes.values():
+                if nodeY in self.neighbouringNodes[nodeX]:
+                    nodeYs.append(1)
+                    continue
+                nodeYs.append(0)
+            mx.append(nodeYs)
+        print(mx) 
+
+    def bfsTester(self):
+        length = len(self.nodes)
+        nodesList = self.nodes.values()
+        nodesList = list(nodesList)
+        timeList = []
+        lengthLits = []
+        hopeList = []
+        for i in range(length):
+            for j in range (length):
+                if j==i:
+                    continue
+                begin = time.perf_counter()
+                answer = self.bfs(nodesList[i],nodesList[j])
+                end =time.perf_counter() 
+                t = (end - begin)*1000
+                timeList.append(t)
+                hopeList.append(len(answer[0]))
+                lengthLits.append(answer[1])
+        
+        print("\nAverage BFS time, Length and hop respecitvely is: ", mean(timeList))
+        return mean(timeList), mean(lengthLits), mean(hopeList)
+    
+    def dfsTester(self):
+        length = len(self.nodes)
+        nodesList = self.nodes.values()
+        nodesList = list(nodesList)
+        timeList = []
+        lengthLits = []
+        hopeList = []
+        for i in range(length):
+            for j in range (length):
+                if j==i:
+                    continue
+                begin = time.perf_counter()
+                answer = self.dfs(nodesList[i],nodesList[j])
+                end =time.perf_counter() 
+                t = (end - begin)*1000
+                timeList.append(t)
+                hopeList.append(len(answer[0]))
+                lengthLits.append(answer[1])
+        
+        print("\nAverage DFS time, Length and hop respecitvely is: ", mean(timeList))
+        return mean(timeList), mean(lengthLits), mean(hopeList)
 
     def dijkstraTester(self):
         length = len(self.nodes)
@@ -237,8 +300,9 @@ class Graph:
                 hopeList.append(len(answer[0]))
                 lengthLits.append(answer[1])
         
+        print("\nAverage Dijkstra time, Length and hop respecitvely is: ", mean(timeList))
         return mean(timeList), mean(lengthLits), mean(hopeList)
-
+    
     def AStarTester(self, file):
         length = len(self.nodes)
         nodesList = self.nodes.values()
@@ -258,24 +322,14 @@ class Graph:
                 hopeList.append(len(answer[0]))
                 lengthLits.append(answer[1])
         
+        print("\nAverage A* time, Length and hop respecitvely is: ", mean(timeList))
         return mean(timeList), mean(lengthLits), mean(hopeList)
-    
-    def to_aj_matrix(self):
-        mx = []
-        for nodeX in self.nodes.values():
-            nodeYs = []
-            for nodeY in self.nodes.values():
-                if nodeY in self.neighbouringNodes[nodeX]:
-                    nodeYs.append(1)
-                    continue
-                nodeYs.append(0)
-            mx.append(nodeYs)
-        print(mx) 
 
-def Initializer(fileName):
+
+def Initializer(fileName1, fileName2):
     g = Graph()
 
-    wholeInfo = open(fileName, "r")
+    wholeInfo = open(fileName1, "r")
     for line in wholeInfo.readlines():
         lineInfo = line.split()
         if lineInfo[0] not in g.nodes.keys():
@@ -290,16 +344,26 @@ def Initializer(fileName):
         if temp not in g.edgesOfNode.keys():
             temp = (node2, node1)
         if temp not in g.edgesOfNode.keys():    
-            g.add_edge(node1, node2, float(lineInfo[2]), name=lineInfo[3])
+            g.add_edge(node1, node2, float(lineInfo[2]))
     
-    # g.getGraph()
-    # firstNode = g.nodes["Arad"]
-    # secondNode = g.nodes["Giurgiu"]
+    # firstNode = g.nodes["Oradea"]
+    # secondNode = g.nodes["Vaslui"]
     # print(g.bfs(firstNode, secondNode))
     # print(g.dfs(firstNode, secondNode))
     # print(g.dijkstra(firstNode, secondNode))
     # print(g.AStar("position.txt" ,firstNode, secondNode))
+    print(g.bfsTester())
+    print(g.dfsTester())
     print(g.dijkstraTester())
-    print(g.AStarTester("position.txt"))
-    
-Initializer(fileName="graph.txt")
+    print(g.AStarTester(fileName2))
+
+
+
+Initializer("graph1x.txt", "position1x.txt")
+Initializer("graph2x.txt", "position2x.txt")
+Initializer("graph3x.txt", "position3x.txt")
+Initializer("graph4x.txt", "position4x.txt")
+
+# Initializer("graph.txt", "position.txt")
+
+

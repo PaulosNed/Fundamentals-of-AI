@@ -1,8 +1,6 @@
 from math import *
 
-
 class Node:
-    
     def __init__(self, name, latitude = None, longitude = None):
         self.name = name
         self.latitude = latitude
@@ -87,54 +85,6 @@ class Graph:
             di[key.name] = li2
         print("Nodes with their neighbors: ", di ,"\n\n")
 
-    def bfs(self, startingNode, targetNode):
-        if isinstance(startingNode, Node) and isinstance(targetNode, Node):
-            visited = []
-            queue = [startingNode]
-            adjacentsList = {}
-            path = [targetNode.name]
-            while queue:
-                if targetNode in queue:
-                    temp = targetNode
-                    while(temp != startingNode):
-                        path.append(adjacentsList[temp].name)
-                        temp = adjacentsList[temp]
-                    path.reverse()
-                    return path
-                visited.append(queue[0])
-                for queueItems in self.neighbouringNodes[queue[0]]:
-                    if queueItems not in visited and queueItems not in queue:
-                        queue.append(queueItems)
-                        adjacentsList[queueItems] = queue[0]
-                        # print(adjacentsList)
-                queue.pop(0)
-        else:
-            raise Exception("Please enter an intiated and added starting node!!")
-
-    def dfs(self, startingNode, targetNode):
-        if isinstance(startingNode, Node):
-            visited = []
-            stack = [startingNode]
-            adjacentsList = {}
-            path = [targetNode.name]
-            while stack:
-                if targetNode in stack:
-                    temp = targetNode
-                    while(temp != startingNode):
-                        path.append(adjacentsList[temp].name)
-                        temp = adjacentsList[temp]
-                    path.reverse()
-                    return path
-                poped = stack.pop()
-                visited.append(poped)
-                for stackItems in self.neighbouringNodes[poped]:
-                    if stackItems not in visited and stackItems not in stack:
-                        stack.append(stackItems)
-                        adjacentsList[stackItems] = poped
-                        #print(adjacentsList)
-        else:
-            raise Exception("Please enter an intiated and added starting node!!")
-
     def dijkstra(self, startingNode, targetNode):
         distanceTracker = {}
         adjacentssTracker = {}
@@ -165,7 +115,7 @@ class Graph:
             last = adjacentsList[last]
         path.reverse()
         # print("Total Cost: \t", distance[targetNode])
-        return path
+        return path, distance[targetNode]
         
     def AStar(self, file,  startingNode, targetNode):
         self.addPosition(file)
@@ -204,7 +154,7 @@ class Graph:
             last = adjacentsList[last]
         path.reverse()
         # print("Total Cost: \t", distance[targetNode])
-        return path
+        return path, distance[targetNode]
 
     def degreeCentrality(self):
         degree ={}
@@ -219,11 +169,12 @@ class Graph:
                 continue
             if degree[item] == degree[maxDegree]:
                 maxi.append(item)
-        print("\n\nThe Node(s) with maximum degree centrality is/are: ",maxi, "with degree centrality",degree[maxDegree])
-        print("\nDegree of All nodes: ",degree)
+        print("\nThe Node(s) with maximum degree centrality is/are: ",maxi, "with degree centrality",degree[maxDegree])
+        print("\nDegree of All nodes: ",degree,"\n\n")
 
     def betweenessCentralityDijkstra(self):
         betweeness = {}
+        highest = []
         length = len(self.nodes)
         denominator = (length * (length-1)) / 2
         nodesList = self.nodes.values()
@@ -231,16 +182,21 @@ class Graph:
         for i in range(length):
             for j in range (i+1, length):
                 answer = self.dijkstra(nodesList[i],nodesList[j])
-                if len(answer) > 2:
-                    for k in range(1, len(answer)-1):
-                        if answer[k] not in betweeness.keys():
-                            betweeness[answer[k]] = 1 / (denominator)
+                if len(answer[0]) > 2:
+                    for k in range(1, len(answer[0])-1):
+                        if answer[0][k] not in betweeness.keys():
+                            betweeness[answer[0][k]] = 1 / (denominator)
                         else:
-                            betweeness[answer[k]] = betweeness[answer[k]] + (1/(denominator))
-        print(betweeness)
+                            betweeness[answer[0][k]] = betweeness[answer[0][k]] + (1/(denominator))
+        for key in betweeness.keys():
+            if betweeness[key] == max(betweeness.values()):
+                highest.append(key)
+        print("\nThe Node(s) with maximum betweenness centrality using Dijkstra is/are: ",highest, "with betweenness centrality value of",max(betweeness.values()))
+        print("\nBetweenness of All nodes with value different from 0: ",betweeness, "\n\n")
 
     def betweenessCentralityAStar(self, file):
         betweeness = {}
+        highest = []
         length = len(self.nodes.values())
         denominator = (length * (length-1)) / 2
         nodesList = self.nodes.values()
@@ -248,13 +204,52 @@ class Graph:
         for i in range(length):
             for j in range (i+1, length):
                 answer = self.AStar(file, nodesList[i],nodesList[j])
-                if len(answer) > 2:
-                    for k in range(1, len(answer)-1):
-                        if answer[k] not in betweeness.keys():
-                            betweeness[answer[k]] = 1 / (denominator)
+                if len(answer[0]) > 2:
+                    for k in range(1, len(answer[0])-1):
+                        if answer[0][k] not in betweeness.keys():
+                            betweeness[answer[0][k]] = 1 / (denominator)
                         else:
-                            betweeness[answer[k]] = betweeness[answer[k]] + (1/(denominator))
-        print(betweeness)
+                            betweeness[answer[0][k]] = betweeness[answer[0][k]] + (1/(denominator))
+        for key in betweeness.keys():
+            if betweeness[key] == max(betweeness.values()):
+                highest.append(key)
+        print("\nThe Node(s) with maximum betweenness centrality using A* is/are: ",highest, "with betweenness centrality value of",max(betweeness.values()))
+        print("\nBetweenness of All nodes with value different from 0: ",betweeness, "\n\n")
+
+    def closnessCentralityDijkstra(self):
+        closness = {}
+        lowest = []
+        for startNode in self.nodes.values():
+            sum = 0
+            for endNode in self.nodes.values():
+                if startNode.name == endNode.name:
+                    continue
+                answer = self.dijkstra(startNode, endNode)
+                sum+=answer[1]
+            closness[startNode.name] = (len(self.nodes)-1) / sum
+        for key in closness.keys():
+            if closness[key] == max(closness.values()):
+                lowest.append(key)
+        print("\nThe Node(s) with closest to most of the nodes according to Dijkstra is/are: ",lowest, "with value of",max(closness.values()))
+        print("\nclosness of All nodes: ",closness, "\n\n")
+
+    def closnessCentralityAStar(self, file):
+        closness = {}
+        lowest = []
+        for startNode in self.nodes.values():
+            sum = 0
+            for endNode in self.nodes.values():
+                if startNode.name == endNode.name:
+                    continue
+                answer = self.AStar(file, startNode, endNode)
+                sum+=answer[1]
+            closness[startNode.name] = (len(self.nodes)-1) / sum
+        for key in closness.keys():
+            if closness[key] == max(closness.values()):
+                lowest.append(key)
+        print("\nThe Node(s) with closest to most of the nodes according to A* is/are: ",lowest, "with value of",max(closness.values()))
+        print("\nclosness of All nodes: ",closness, "\n\n")
+                
 
     def to_aj_matrix(self):
         mx = []
@@ -288,15 +283,11 @@ def Initializer(fileName):
         if temp not in g.edgesOfNode.keys():    
             g.add_edge(node1, node2, float(lineInfo[2]), name=lineInfo[3])
     
-    # g.getGraph()
-    firstNode = g.nodes["Zerind"]
-    secondNode = g.nodes["Urziceni"]
-    # print(g.bfs(firstNode, secondNode))
-    # print(g.dfs(firstNode, secondNode))
-    # print(g.dijkstra(firstNode, secondNode))
-    # print(g.AStar("position.txt" ,firstNode, secondNode))
-    # g.betweenessCentralityDijkstra()
-    # g.betweenessCentralityAStar("position.txt")
     g.degreeCentrality()
-    
+    g.betweenessCentralityDijkstra()
+    g.betweenessCentralityAStar("position.txt")
+    g.closnessCentralityDijkstra()
+    g.closnessCentralityAStar("position.txt")
+
+
 Initializer(fileName="graph.txt")

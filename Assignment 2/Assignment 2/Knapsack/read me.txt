@@ -1,0 +1,4 @@
+to run from command line:
+for genetic algorithm - use ga
+for simulated annealing - use simulated_Annealing
+for hill climbing - use hill_climbing
